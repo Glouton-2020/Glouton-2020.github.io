@@ -142,6 +142,7 @@ Enemy.prototype.update = function (dt) {
 };
 
 //Player Object
+// Needs to be able to perform 3 actions: move left, move right and fire. 
 /////////////////
 
 function Player(position, speed, direction) {
@@ -149,17 +150,41 @@ function Player(position, speed, direction) {
 
     this.width = 20;
     this.height = 10;
+
+    this.movingLeft = false;
+    this.movingRight = false; 
 }
 
 Player.prototype = Object.create(Entity.prototype);
 
+Player.prototype.updateDirection = function () {
+    var direction = new Vector2d(0, 0);
+    if (this.movingLeft) {
+        direction = vectorAdd (direction, new Vector2d(-1, 0) );
+    }
+    if (this.movingRight) {
+        direction = vectorAdd (direction, new Vector2d(1, 0) );
+    }
+    this.direction = direction;
+};
+
+Player.prototype.moveRight = function (enable) {
+    this.movingRight = enable;
+    this.updateDirection();
+};
+Player.prototype.moveLeft = function (enable) {
+    this.movingLeft = enable;
+    this.updateDirection();
+};
+
+Player.prototype.fire = function () {
+    console.log("Fire to be implemented");
+}
+
 Player.prototype.update = function (dt) {
     Entity.prototype.update.call(this, dt);
-    if (this.collisionRect().top() <= 0 ||
-        this.collisionRect().bottom() >= game.gameFieldRect().bottom() ) {
-        this.direction.y *= -1;
-    }
 };
+
 
 // Render Object
 // Enemy rank will be shown by changing colors.
@@ -248,7 +273,7 @@ var game = (function () {
         _enemies = [];
         _gameFieldRect = new Rectangle(0, 0, 300, 180);
 
-        this.addEntity(new Player (new Vector2d(100, 175), 25, new Vector2d(0, -1)));
+        this.addEntity(new Player (new Vector2d(100, 175), 90, new Vector2d(0, 0)));
         this.addEntity(new Enemy (new Vector2d(20, 25), 20, new Vector2d(0, 1), 0));
         this.addEntity(new Enemy (new Vector2d(50, 25), 10, new Vector2d(0, 1), 1));
         this.addEntity(new Enemy (new Vector2d(80, 25), 15, new Vector2d(0, 1), 2));
@@ -307,3 +332,75 @@ var game = (function () {
         gameFieldRect: function() {return _gameFieldRect; }
     };
 })();
+
+
+//PLAYER ACTIONS
+// This object is responsible for executing commands on the Player Object. 
+// Actions are identified by the strings: "moveLeft", "moveRight", and 'fire'. 
+// Every input event has a unique identifier, Keyboard events have the keycode of the key pressed. 
+/////////////////
+
+var playerActions = (function () {
+    var _ongoingActions = []; //An array of currently active playerActions
+
+    function _startAction(id, playerAction) { //starts the playerAction id and store it in ongoingActions
+        if (playerAction === undefined) {
+            return;
+        }
+
+        var f, 
+            acts = {"moveLeft": function() { if(game.player()) game.player().moveLeft(true); },
+                    "moveRight": function() { if(game.player()) game.player().moveRight(true); },
+                    "fire": function() {if(game.player()) game.player().fire(); } };
+
+                if (f = acts[playerAction]) f(); 
+                
+            _ongoingActions.push( {identifier:id, playerAction:playerAction} );
+            }
+
+        function _endAction(id) { //stops the action with id and removes it from ongoingActions
+            var f, 
+            acts = {"moveLeft": function() { if(game.player()) game.player().moveLeft(false); }, 
+                    "moveRight": function() { if(game.player()) game.player().moveRight(false); } };
+
+            var idx = _ongoingActions.findIndex(function(a) { return a.identifier === id; });
+
+            if (idx >= 0) {
+                if(f = acts[_ongoingActions[idx].playerAction]) f();
+                _ongoingActions.splice(idx, 1); // remove action at idx
+            }
+        }
+        return {
+            startAction: _startAction, 
+            endAction: _endAction
+        };
+    })();
+
+// KeyBoard Input
+/////////////////
+
+var keybinds = {    32: "fire",
+                    37: "moveLeft",
+                    39: "moveRight" 
+                };
+
+        function keyDown(e) {
+            var  x = e.which || e.keyCode; 
+
+            if (keybinds[x] !== undefined ) {
+                e.preventDefault();
+                playerActions.startAction(x, keybinds[x]); 
+            }
+        }
+
+        function keyUp(e) {
+            var x = e.which || e.keyCode;
+
+            if( keybinds[x] !== undefined ) {
+                e.preventDefault();
+                playerActions.endAction(x);
+            }
+        }
+    
+    document.body.addEventListener('keydown', keyDown);
+    document.body.addEventListener('keyup', keyUp);
