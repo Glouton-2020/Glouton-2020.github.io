@@ -1,6 +1,6 @@
 
 //
-// Vector2d Object
+// VECTOR2D OBJECT
 ///// Vectors will be used for the movement and position of game entities.
 
 var Vector2d = function (x, y) {
@@ -130,16 +130,68 @@ function Enemy(position, speed, direction, rank) {
     this.width = 13;
     this.height = 10;
     this.rank = rank;
+
+    this.dropTarget = 0;
+    this.dropAmount = 1;
+    this.timer = 0;
+    this.firePercent = 10;
+    this.fireWait = Math.random() * 5;
 }
 Enemy.prototype = Object.create(Entity.prototype);
 
 Enemy.prototype.update = function (dt) {
+
+    //EDGE COLLISION
+    var enemiesLeft = game.enemiesRect().left(),
+        enemiesRight = game.enemiesRect().right(),
+        edgeMargin = 5,
+        gameLeftEdge = game.gameFieldRect().left() + edgeMargin, 
+        gameRightEdge = game.gameFieldRect().right() - edgeMargin;
+
     Entity.prototype.update.call(this, dt);
-    if (this.collisionRect().top() <= 0 ||
-        this.collisionRect().bottom() >= game.gameFieldRect().bottom() ) {
-        this.direction.y *= -1;
+
+    // Drop if the enemiesRect hits an edge margin
+    if (( this.direction.x < 0 && enemiesLeft < gameLeftEdge) || 
+        (this.direction.x > 0 && enemiesRight > gameRightEdge) ) {
+            this.dropTarget += this.dropAmount;
+        }
+
+    // Determine Direction 
+    if (this.position.y < this.dropTarget) {
+        this.direction = new Vector2d(0, 1);
     }
+    else if (this.direction.y > 0) {
+        this.direction = (enemiesRight > gameRightEdge) ?
+                                        new Vector2d( -1, 0) :
+                                        new Vector2d(1, 0);
+    }
+
+    // Determine Firing Weapon
+
+    var p = vectorAdd(this.position, new Vector2d(0, 5));
+
+    function existsUnderneath(e) {
+        var rect = e.collisionRect();
+        return p.y <= rect.top() &&
+                        rect.left() <= p.x && p.x <= rect.right();
+    }
+
+    this.timer += dt;
+    if (this.timer > this.fireWait) {
+        this.timer = 0;
+        this.fireWait = 1 + Math.random() * 4;;
+
+        if (randomInt(100) < this.firePercent &&
+            !game.enemies().find(existsUnderneath) ) {
+                this.fire(p);
+            }
+        }
 };
+
+    Enemy.prototype.fire = function (position) {
+        console.log("Fire to be implemented")
+    };
+
 
 //Player Object
 // Needs to be able to perform 3 actions: move left, move right and fire. 
@@ -186,7 +238,7 @@ Player.prototype.update = function (dt) {
 };
 
 
-// Render Object
+// Renderer Object
 // Enemy rank will be shown by changing colors.
 //////////////////
 
@@ -247,10 +299,8 @@ var physics = (function () {
 
         for( i = entities.length -1; i >= 0; i-- ) {
             e = entities[i];
-            velocity = vectorScalarMultiply( e.direction, e.speed
-                );
-            e.position = vectorAdd (e.position, vectorScalarMultiply(velocity, dt) 
-            );
+            velocity = vectorScalarMultiply( e.direction, e.speed);
+            e.position = vectorAdd (e.position, vectorScalarMultiply(velocity, dt) );
         }
     }
         return {
@@ -266,19 +316,25 @@ var game = (function () {
         _enemies, 
         _player, 
         _gameFieldRect, 
-        _started = false; 
+        _started = false,
+        _lastFrameTime, 
+        _enemiesRect, 
+        _enemySpeed, 
+        _enemyFirePercent, 
+        _enemyDropAmount;
 
     function _start() {
+        _lastFrameTime = 0;
+
         _entities = [];
         _enemies = [];
         _gameFieldRect = new Rectangle(0, 0, 300, 180);
+        _enemiesRect = new Rectangle(0, 0, 0, 0);
+        _enemySpeed = 10;
+        _enemyFirePercent = 10;
+        _enemyDropAmount = 1;
 
-        this.addEntity(new Player (new Vector2d(100, 175), 90, new Vector2d(0, 0)));
-        this.addEntity(new Enemy (new Vector2d(20, 25), 20, new Vector2d(0, 1), 0));
-        this.addEntity(new Enemy (new Vector2d(50, 25), 10, new Vector2d(0, 1), 1));
-        this.addEntity(new Enemy (new Vector2d(80, 25), 15, new Vector2d(0, 1), 2));
-        this.addEntity(new Enemy (new Vector2d(120, 25), 25, new Vector2d(0, 1), 3));
-        this.addEntity(new Enemy (new Vector2d(140, 25), 30, new Vector2d(0, 1), 4));
+        this.addEntity(new Player (new Vector2d(100, 175), 90, new Vector2d(0, 0)) );
 
         if (!_started) {
             window.requestAnimationFrame(this.update.bind(this));
@@ -309,15 +365,61 @@ var game = (function () {
         }
     }
 
-    function _update() {
-        var dt =  1/60; // Fixed 60 frames per second time step
+    function _update( time ) {
+
+        var i, j;
+            dt = Math.min( (time - _lastFrameTime) / 1000, 3/60);
+
+            _lstFrameTime = time; 
+
+        //Update Physics
         physics.update(dt);
 
-        var i;
-        for (i=_entities.length -1; i >= 0; i--) {
+        // Calculates the bounding rectangle around the enemies
+        _enemiesRect = _enemies.reduce(
+            function(rect, e) {
+                return rectUnion(rect, e.collisionRect());
+            }, 
+            undefined);
+        
+        // Update Entities
+        for (i=_entities.length-1; i >= 0; i-- ) {
             _entities[i].update(dt);
         }
 
+        // Update Enemy Speed
+        var speed = _enemySpeed + (_enemySpeed * (1-(_enemies.length/50)));
+        for (i=_enemies.length-1; i >= 0; i-- ) {
+            _enemies[i].speed = speed;
+        }
+
+        // Creates a grid of Enemies if there are 0
+        if (_enemies.length === 0) {
+            for (i = 0; i < 10; i++) {
+                for (j=0; j < 5; j++) {
+                    var dropTarget = 10+j*20,
+                        position = new Vector2d(50+i*20, dropTarget-100),
+                        direction = new Vector2d(1, 0), 
+                        rank = 4-j, 
+                        enemy = new Enemy(position, 
+                                        _enemySpeed,
+                                        direction, 
+                                        rank);
+                                        
+                    enemy.dropTarget = dropTarget;
+                    enemy.firePercent = _enemyFirePercent;
+                    enemy.dropAmount = _enemyDropAmount;
+
+                    this.addEntity (enemy);
+                }
+            }
+
+            _enemySpeed += 5;
+            _enemyFirePercent += 5;
+            _enemyDropAmount += 1;
+        }
+
+            // Render the frame 
         renderer.render(dt);
 
         window.requestAnimationFrame(this.update.bind(this));
@@ -329,7 +431,8 @@ var game = (function () {
         entities: function() {return _entities; },
         enemies: function() {return _enemies; },
         player: function() {return _player; },
-        gameFieldRect: function() {return _gameFieldRect; }
+        gameFieldRect: function() {return _gameFieldRect; },
+        enemiesRect: function() {return _enemiesRect; }
     };
 })();
 
@@ -376,7 +479,7 @@ var playerActions = (function () {
         };
     })();
 
-// KeyBoard Input
+// KEYBOARD INPUT
 /////////////////
 
 var keybinds = {    32: "fire",
