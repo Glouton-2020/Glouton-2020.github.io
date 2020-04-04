@@ -189,7 +189,10 @@ Enemy.prototype.update = function (dt) {
 };
 
     Enemy.prototype.fire = function (position) {
-        console.log("Fire to be implemented")
+        game.addEntity (new Projectile ( position, 
+                                        60,
+                                        new Vector2d(0, 1),
+                                        "enemy" ));
     };
 
 
@@ -230,13 +233,34 @@ Player.prototype.moveLeft = function (enable) {
 };
 
 Player.prototype.fire = function () {
-    console.log("Fire to be implemented");
-}
+    function isPlayerType(proj) {
+        return (proj.type === "player");
+    }
+    var playerProjectileCount =
+game.projectiles().filter(isPlayerType).length;
+    if (playerProjectileCount === 0) {
+        game.addEntity (new Projectile (this.position, 
+                                        180,
+                                        new Vector2d(0, -1),
+                                        "player" ));
+    }
+};
 
 Player.prototype.update = function (dt) {
     Entity.prototype.update.call(this, dt);
 };
 
+//PROJECTILE
+/////////////
+
+function Projectile(position, speed, direction, type) {
+    Entity.call (this, position, speed, direction);
+
+    this.width = 1;
+    this.height = 5;
+    this.type = type;
+}
+Projectile.prototype = Object.create(Entity.prototype);
 
 // Renderer Object
 // Enemy rank will be shown by changing colors.
@@ -252,6 +276,8 @@ var renderer = (function () {
                         "rgb(56, 150, 7)",
                         "rgb(7, 150, 122)",
                         "rgb(46, 7, 150)"];
+        _projectileColors = {"player": "rgb(196, 208, 106)",
+                            "enemy": "rgb(96, 195, 96)"};
 
     function _drawRectangle(color, entity) {
         _context.fillStyle = color;
@@ -278,6 +304,9 @@ var renderer = (function () {
         else if(entity instanceof Player) {
             _drawRectangle("rgb(255, 255, 0)", entity);
         }
+        else if(entity instanceof Projectile) {
+            _drawRectangle(_projectileColors[entity.type], entity);
+        }
     }
 }
     return {
@@ -292,16 +321,69 @@ var renderer = (function () {
 var physics = (function () {
 
     function _update(dt) {
-        var i, 
-            e,
-            velocity, 
-            entities = game.entities();
+        var i, j,
+            entities = game.entities(),
+            enemies = game.enemies(),
+            projectiles = game.projectiles(),
+            player = game.player();
 
         for( i = entities.length -1; i >= 0; i-- ) {
-            e = entities[i];
+            var e = entities[i];
             velocity = vectorScalarMultiply( e.direction, e.speed);
             e.position = vectorAdd (e.position, vectorScalarMultiply(velocity, dt) );
         }
+
+        // COLLISION DETECTION
+        var collisionPairs = [];
+
+        // Enemies vs Player
+        for ( i = enemies.length-1; i > 0; i-- ) {
+            collisionPairs.push( {entity0: enemies[i],
+                                entity1: player } );
+        }
+
+        //Projectiles vs other Entities
+        for ( i = projectiles.length-1; i >= 0; i-- ) {
+
+            //Enemy Projectiles vs Player
+            if ( projectiles[i].type === "enemy") {
+                collisionPairs.push ( { entity0: projectiles[i],
+                                        entity1: player } );
+            }
+            //Player Projectiles vs Enemies
+            if ( projectiles[i].type === "player") {
+                for ( j=enemies.length-1; j >= 0; j-- ) {
+                    collisionPairs.push ( {entity0: projectiles[i],
+                                            entity1: enemies[j] } );
+                }
+            }
+        }
+
+        // Collision Check
+        for ( i = collisionPairs.length-1; i >= 0; i-- ) {
+            var e0 = collisionPairs[i].entity0;
+            var e1 = collisionPairs[i].entity1;
+
+            if ( e0 && e1 && e0.collisionRect().intersects(e1.collisionRect() ) ) {
+                //Resolve Collision
+                e0.hp -= 1;
+                e1.hp -= 1;
+            }
+        }
+
+        // Enemy vs floor (special case)
+        if (game.enemiesRect() && player && 
+            game.enemiesRect().bottom() > player.collisionRect().bottom() ) {
+            game.setGameOver();
+            }
+
+            // Projectile leaves Game field (special case)
+            for ( i = projectiles.length-1; i >= 0; i-- ) {
+                var proj = projectiles[i];
+                if ( !game.gameFieldRect().intersects(proj.collisionRect()) ) {
+                    proj.hp -= 1;
+                }
+            }
     }
         return {
             update: _update
@@ -321,8 +403,14 @@ var game = (function () {
         _enemiesRect, 
         _enemySpeed, 
         _enemyFirePercent, 
-        _enemyDropAmount;
+        _enemyDropAmount,
+        _projectiles,
+        _livesRemaining, 
+        _gameOver, 
+        _score, 
+        _highScores;
 
+        //Initializes Game
     function _start() {
         _lastFrameTime = 0;
 
@@ -333,6 +421,22 @@ var game = (function () {
         _enemySpeed = 10;
         _enemyFirePercent = 10;
         _enemyDropAmount = 1;
+        _projectiles = [];
+        _livesRemaining = 2;
+        _gameOver = false;
+        _score = 0;
+        _highScores = [];
+
+        //High scores are stored in local storage if available. 
+        // Saves the score between page loads. If score doesn't exist or corrupted an empty high score array is created.
+        if (typeof(Storage) !== "undefined") {
+            try {
+                _highScores = JSON.parse(localStorage.invadersScores);
+            }
+            catch(e) {
+                _highScores = [];
+            }
+        }
 
         this.addEntity(new Player (new Vector2d(100, 175), 90, new Vector2d(0, 0)) );
 
@@ -341,6 +445,8 @@ var game = (function () {
             _started = true;
         }
     }
+
+        
 
     function _addEntity(entity) {
         _entities.push(entity);
@@ -351,6 +457,9 @@ var game = (function () {
         if (entity instanceof Enemy) {
             _enemies.push(entity);
         }
+        if (entity instanceof Projectile) {
+            _projectiles.push(entity);
+        }
     }
 
     function _removeEntities(entities) {
@@ -359,6 +468,7 @@ var game = (function () {
         function isNotInEntities(item) { return !entities.includes(item); }
         _entities = _entities.filter(isNotInEntities);
         _enemies = _enemies.filter(isNotInEntities);
+        _projectiles = _projectiles.filter(isNotInEntities);
 
         if(entities.includes(_player)) {
             _player = undefined;
@@ -366,18 +476,21 @@ var game = (function () {
     }
 
     function _update( time ) {
-
         var i, j;
             dt = Math.min( (time - _lastFrameTime) / 1000, 3/60);
 
-            _lstFrameTime = time; 
+            _lastFrameTime = time; 
+
+            if (_gameOver) {
+                _started = false;
+                return;
+            }
 
         //Update Physics
         physics.update(dt);
 
         // Calculates the bounding rectangle around the enemies
-        _enemiesRect = _enemies.reduce(
-            function(rect, e) {
+        _enemiesRect = _enemies.reduce( function(rect, e) {
                 return rectUnion(rect, e.collisionRect());
             }, 
             undefined);
@@ -387,13 +500,32 @@ var game = (function () {
             _entities[i].update(dt);
         }
 
+        // Remove Hit Enemy Objects
+        var removeEntities =[];
+        for (i=_entities.length-1; i >= 0; i-- ) {
+            var e = _entities[i];
+            if ( e.hp <= 0 ) {
+                removeEntities.push(e);
+
+                if ( e instanceof Enemy ) {
+                    _score += e.rank + 1;
+                }
+
+                else if ( e instanceof Player ) {
+                    _livesRemaining--;
+                    this.addEntity( new Player( new Vector2d(100, 175), 90, new Vector2d(0, 0) ));
+                }
+            }
+        }
+        _removeEntities(removeEntities);
+
         // Update Enemy Speed
         var speed = _enemySpeed + (_enemySpeed * (1-(_enemies.length/50)));
         for (i=_enemies.length-1; i >= 0; i-- ) {
             _enemies[i].speed = speed;
         }
 
-        // Creates a grid of Enemies if there are 0
+        // Creates new Enemies if there are 0
         if (_enemies.length === 0) {
             for (i = 0; i < 10; i++) {
                 for (j=0; j < 5; j++) {
@@ -419,11 +551,33 @@ var game = (function () {
             _enemyDropAmount += 1;
         }
 
+        //Check for Game Over 
+        if (_livesRemaining < 0 && !_gameOver) {
+            _setGameOver();
+        }
+
             // Render the frame 
         renderer.render(dt);
 
         window.requestAnimationFrame(this.update.bind(this));
     }
+
+    function _addScore(score) {
+        _highScores.push(score);
+        _highScores.sort(function(a, b) {return b-a});
+        _highScores = _highScores.slice(0, 10); // top 10 Scores are saved
+
+        if (typeof(Storage) !== "undefined") {
+            localStorage.invadersScores = JSON.stringify(_highScores);
+        }
+    }
+
+    // Function that sets the _gameOver variable and records the current score
+    function _setGameOver() {
+        _gameOver = true;
+        _addScore(Math.round(game.score()));
+    }
+
     return {
         start: _start,
         update: _update,
@@ -432,7 +586,13 @@ var game = (function () {
         enemies: function() {return _enemies; },
         player: function() {return _player; },
         gameFieldRect: function() {return _gameFieldRect; },
-        enemiesRect: function() {return _enemiesRect; }
+        enemiesRect: function() {return _enemiesRect; },
+        projectiles: function() {return _projectiles; },
+        score: function() {return _score; },
+        highScores: function() {return _highScores; },
+        livesRemaining: function() {return _livesRemaining; },
+        gameOver: function() {return _gameOver; },
+        setGameOver: _setGameOver
     };
 })();
 
