@@ -1,7 +1,8 @@
 
-//
+//==========================================================================
 // VECTOR2D OBJECT
 ///// Vectors will be used for the movement and position of game entities.
+//===========================================================================
 
 var Vector2d = function (x, y) {
     this.x = x;
@@ -33,10 +34,11 @@ function vectorNormalize(v) {
     var reciprocal = 1.0 / (vectorLength(v) + 1.0e-037); // Prevent division by zero
     return vectorScalarMultiply(v, reciprocal);
 }
-
-// Rectangle
+//===================================================================
+// RECTANGLE
 // Rectangles will be used to check for collisions between entities as well as defining the boundary of the game area. 
 // It will also keep track of the size of the entire group of enemies to make them move as a group. 
+//==================================================================
 
 //Rectangle Object
 ////////////////////
@@ -87,16 +89,17 @@ function rectUnion (r1, r2) {
 
     return new Rectangle(x, y, width, height);
 }
-
-// Random Number Function
-////////////////////////////
+//============================================
+// RANDOM NUMBER FUNCTION
+//============================================
 //Returns an integer in the range 0 - max
 function randomInt(max) {
     return Math.floor(Math.random() * Math.floor(max));
 }
 
-//Entity root class
-/////////
+//===================================================
+//ENTITY ROOT CLASS
+//==================================================
 // Entity Object
 ///////////////////
 
@@ -121,8 +124,9 @@ Entity.prototype.collisionRect = function () {
                             this.height);
 };
 
-//Enemy Object
-///////////////
+// ========================================
+// ENEMY OBJECT
+// =======================================
 
 function Enemy(position, speed, direction, rank) {
     Entity.call(this, position, speed, direction);
@@ -134,14 +138,17 @@ function Enemy(position, speed, direction, rank) {
     this.dropTarget = 0;
     this.dropAmount = 1;
     this.timer = 0;
-    this.firePercent = 4;
-    this.fireWait = Math.random() * 3;
+    this.firePercent = 10;
+    this.fireWait = Math.random() * 10;
 }
 Enemy.prototype = Object.create(Entity.prototype);
 
 Enemy.prototype.update = function (dt) { 
 
-    //EDGE COLLISION
+//================//
+//EDGE COLLISION
+//================//
+
     var enemiesLeft = game.enemiesRect().left(),
         enemiesRight = game.enemiesRect().right(),
         edgeMargin = 5,
@@ -150,13 +157,17 @@ Enemy.prototype.update = function (dt) {
 
     Entity.prototype.update.call(this, dt);
 
-    // Drop if the enemiesRect hits an edge margin
+//======================//
+// Drop if the enemiesRect hits an edge margin
+//======================//
     if (( this.direction.x < 0 && enemiesLeft < gameLeftEdge) || 
         (this.direction.x > 0 && enemiesRight > gameRightEdge) ) {
             this.dropTarget += this.dropAmount;
         }
 
-    // Determine Direction 
+//========================//
+// Determine Direction 
+//========================//
     if (this.position.y < this.dropTarget) {
         this.direction = new Vector2d(0, 1);
     }
@@ -165,9 +176,9 @@ Enemy.prototype.update = function (dt) {
                                         new Vector2d( -1, 0) :
                                         new Vector2d(1, 0);
     }
-
-    // Determine Firing Weapon
-
+//==========================//
+// Determine Firing Weapon
+//==========================//
     var p = vectorAdd(this.position, new Vector2d(0, 5));
 
     function existsUnderneath(e) {
@@ -195,10 +206,10 @@ Enemy.prototype.update = function (dt) {
                                         "enemy" ));
     };
 
-
-//Player Object
+//======================================
+//PLAYER OBJECT
 // Needs to be able to perform 3 actions: move left, move right and fire. 
-/////////////////
+//========================================
 
 function Player(position, speed, direction) {
     Entity.call(this, position, speed, direction);
@@ -250,8 +261,9 @@ Player.prototype.update = function (dt) {
     Entity.prototype.update.call(this, dt);
 };
 
-//PROJECTILE
-/////////////
+// ===================================
+//PROJECTILE FUNCTION
+// ===================================
 
 function Projectile(position, speed, direction, type) {
     Entity.call (this, position, speed, direction);
@@ -305,20 +317,24 @@ Projectile.prototype = Object.create(Entity.prototype);
 //     }
 // }
 
-// Renderer Object
-// Enemy rank will be shown by changing colors.
-//////////////////
+
+//================================================
+// RENDERER OBJECT
+// Changes color of Enemy rank and Projectiles
+//=================================================
 
 var renderer = (function () {
-    // Drawing canvas from the DOM
+// Drawing canvas from the DOM
     var _canvas = document.getElementById("game-layer"), 
         _context = _canvas.getContext("2d"),
-        //Array of colors corresponding to th enemy ranks
-        _enemyColors = ["rgb(150, 7, 7)",
-                        "rgb(150, 89, 7)",
-                        "rgb(56, 150, 7)",
+//Array of colors corresponding to th enemy ranks
+        _enemyColors = [
+                        "rgb(46, 7, 150)",
                         "rgb(7, 150, 122)",
-                        "rgb(46, 7, 150)"];
+                        "rgb(56, 150, 7)",
+                        "rgb(150, 89, 7)",
+                        "rgb(150, 7, 7)"];
+
         _projectileColors = {"player": "rgb(196, 208, 106)",
                             "enemy": "rgb(96, 195, 96)"};
 
@@ -329,7 +345,8 @@ var renderer = (function () {
                             entity.width,
                             entity.height);
     }
-    // renders the scene
+// Renders the scene
+// Fills the Canvas with a black background
     function _render(dt) {
         _context.fillStyle = "black";
         _context.fillRect(0, 0, _canvas.width, _canvas.height);
@@ -357,9 +374,10 @@ var renderer = (function () {
     };
 })();
 
-// Physics Object 
+// =========================================
+// PHYSICS OBJECT
 // Collision detection will go here. This will work in play with the Vector Math
-/////////////////
+// =======================================
 
 var physics = (function () {
 
@@ -376,24 +394,24 @@ var physics = (function () {
             e.position = vectorAdd (e.position, vectorScalarMultiply(velocity, dt) );
         }
 
-        // COLLISION DETECTION
+// COLLISION DETECTION
         var collisionPairs = [];
 
-        // Enemies vs Player
+// Enemies vs Player
         for ( i = enemies.length-1; i > 0; i-- ) {
             collisionPairs.push( {entity0: enemies[i],
                                 entity1: player } );
         }
 
-        //Projectiles vs other Entities
+//Projectiles vs other Entities
         for ( i = projectiles.length-1; i >= 0; i-- ) {
 
-            //Enemy Projectiles vs Player
+//Enemy Projectiles vs Player
             if ( projectiles[i].type === "enemy") {
                 collisionPairs.push ( { entity0: projectiles[i],
                                         entity1: player } );
             }
-            //Player Projectiles vs Enemies
+//Player Projectiles vs Enemies
             if ( projectiles[i].type === "player") {
                 for ( j=enemies.length-1; j >= 0; j-- ) {
                     collisionPairs.push ( {entity0: projectiles[i],
@@ -402,25 +420,25 @@ var physics = (function () {
             }
         }
 
-        // Collision Check
+// Collision Check
         for ( i = collisionPairs.length-1; i >= 0; i-- ) {
             var e0 = collisionPairs[i].entity0;
             var e1 = collisionPairs[i].entity1;
 
             if ( e0 && e1 && e0.collisionRect().intersects(e1.collisionRect() ) ) {
-                //Resolve Collision
+//Resolve Collision
                 e0.hp -= 1;
                 e1.hp -= 1;
             }
         }
 
-        // Enemy vs floor (special case)
+// Enemy vs floor (special case)
         if (game.enemiesRect() && player && 
             game.enemiesRect().bottom() > player.collisionRect().bottom() ) {
             game.setGameOver();
             }
 
-            // Projectile leaves Game field (special case)
+// Projectile leaves Game field (special case)
             for ( i = projectiles.length-1; i >= 0; i-- ) {
                 var proj = projectiles[i];
                 if ( !game.gameFieldRect().intersects(proj.collisionRect()) ) {
@@ -433,8 +451,9 @@ var physics = (function () {
         };
 })();
 
-// Game Object
-/////////////////
+// =============================
+// GAME OBJECT
+// ===========================
 
 var game = (function () {
     var _entities,
@@ -453,7 +472,7 @@ var game = (function () {
         _score, 
         _highScores;
 
-        //Initializes Game
+// Initializes Game
     function _start() {
         _lastFrameTime = 0;
 
@@ -470,8 +489,8 @@ var game = (function () {
         _score = 0;
         _highScores = [];
 
-        //High scores are stored in local storage if available. 
-        // Saves the score between page loads. If score doesn't exist or corrupted an empty high score array is created.
+// High scores are stored in local storage if available. 
+// Saves the score between page loads. If score doesn't exist or corrupted an empty high score array is created.
         if (typeof(Storage) !== "undefined") {
             try {
                 _highScores = JSON.parse(localStorage.invadersScores);
@@ -488,8 +507,6 @@ var game = (function () {
             _started = true;
         }
     }
-
-        
 
     function _addEntity(entity) {
         _entities.push(entity);
@@ -518,6 +535,7 @@ var game = (function () {
         }
     }
 
+// Smooth the frame rate to handle all the objects and projectiles
     function _update( time ) {
         var i, j;
             dt = Math.min( (time - _lastFrameTime) / 1000, 3/60);
@@ -529,21 +547,22 @@ var game = (function () {
                 return;
             }
 
-        //Update Physics
+// Update Physics
         physics.update(dt);
 
-        // Calculates the bounding rectangle around the enemies
+// Calculates the bounding rectangle around the enemies
         _enemiesRect = _enemies.reduce( function(rect, e) {
                 return rectUnion(rect, e.collisionRect());
             }, 
             undefined);
         
-        // Update Entities
+// Update Entities
         for (i=_entities.length-1; i >= 0; i-- ) {
             _entities[i].update(dt);
         }
 
-        // Remove Hit Enemy Objects
+// Remove Hit Enemy Objects
+// =====================================
         var removeEntities =[];
         for (i=_entities.length-1; i >= 0; i-- ) {
             var e = _entities[i];
@@ -562,13 +581,13 @@ var game = (function () {
         }
         _removeEntities(removeEntities);
 
-        // Update Enemy Speed
+// Update Enemy Speed
         var speed = _enemySpeed + (_enemySpeed * (1-(_enemies.length/50)));
         for (i=_enemies.length-1; i >= 0; i-- ) {
             _enemies[i].speed = speed;
         }
 
-        // Creates new Enemies if there are 0
+// Creates new Enemies if there are 0
         if (_enemies.length === 0) {
             for (i = 0; i < 10; i++) {
                 for (j=0; j < 5; j++) {
@@ -594,12 +613,12 @@ var game = (function () {
             _enemyDropAmount += 3;
         }
 
-        //Check for Game Over 
+//Check for Game Over 
         if (_livesRemaining < 0 && !_gameOver) {
             _setGameOver();
         }
 
-            // Render the frame 
+// Render the frame 
         renderer.render(dt);
 
         window.requestAnimationFrame(this.update.bind(this));
@@ -615,7 +634,7 @@ var game = (function () {
         }
     }
 
-    // Function that sets the _gameOver variable and records the current score
+// Function that sets the _gameOver variable and records the current score
     function _setGameOver() {
         _gameOver = true;
         _addScore(Math.round(game.score()));
@@ -639,12 +658,12 @@ var game = (function () {
     };
 })();
 
-
+// ==========================================
 //PLAYER ACTIONS
 // This object is responsible for executing commands on the Player Object. 
 // Actions are identified by the strings: "moveLeft", "moveRight", and 'fire'. 
 // Every input event has a unique identifier, Keyboard events have the keycode of the key pressed. 
-/////////////////
+// =========================================
 
 var playerActions = (function () {
     var _ongoingActions = []; //An array of currently active playerActions
@@ -682,8 +701,9 @@ var playerActions = (function () {
         };
     })();
 
+// ==========================
 // KEYBOARD INPUT
-/////////////////
+// ==========================
 
 var keybinds = {    32: "fire",
                     37: "moveLeft",

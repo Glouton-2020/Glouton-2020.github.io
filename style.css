@@ -1,6 +1,5 @@
 
 
-
 * {
     box-sizing: border-box;
 }
@@ -14,7 +13,7 @@ body {
     width: 600px;
     position: relative;
 
-    background-color: black;
+    background-color:rgb(53, 51, 51);
     color: rgb(247, 245, 199);
 }
 
@@ -67,8 +66,26 @@ body {
 
     display: none;
 }
-/* 
-#scoretable {
+
+#menu {
+    text-align: center;
+    width: 100%;
+    position: fixed;
+}  
+
+#start_button {
+    background-color: green;
+    color: white;
+    font-size: 20px;
+    padding: 2px;
+    text-align: center;
+    text-decoration: none;
+    position: absolute;
+    border-width: 1px;
+    border-color: white;
+}
+
+/* #scoretable {
     margin-left: auto;
     margin-right: auto;
     width: 20%;
@@ -89,24 +106,4 @@ body {
 #scoretable .col2 {
     text-align: right;
     width: 99%;
-} */
-/* 
-#menu {
-    text-align: center;
-    width: 100%;
-    position: absolute;
-    bottom: 1em;
-    z-index: 3;
-} */
-
-#start_button {
-    background-color: green;
-    color: white;
-    font-size: 20px;
-    padding: 2px;
-    text-align: center;
-    text-decoration: none;
-    position: absolute;
-    border-width: 1px;
-    border-color: white;
-}
+} */ */
