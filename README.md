@@ -41,9 +41,10 @@ I will need to come back and finalize everything to fully get the game up and ru
 - Exploding targets
 - Audio 
 
-## Additional information: 
+
 ## App Demo 
 Please take a look at my project
-file:///Users/benjie/Desktop/project_1/New%20Space%20Invaders/index.html 
+
+https://glouton-2020.github.io/
 
 
