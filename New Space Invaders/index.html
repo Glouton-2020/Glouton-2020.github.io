@@ -4,15 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Space Invaders</title>
+    <link href="style.css" rel="stylesheet">
 </head>
-<body>
-    <h1>Space Invaders</h1>
 
-<!-- Created Grid: 10 columns of 5 rows -->
-    <canvas id="game-layer" width="300" height="180" style="background:black"></canvas>
-    <br>
-    <button id="start_button" onclick="game.start(); canvas.focus();">Call game.start()</button>
+<body>
+    <div class="wrapper">
+        <div class="container">
+            <div class="widebar" id="score">Score</div>
+            <div class="canvas-container">
+                <div id="title">
+                    Box Invaders<br><br>
+                    <br>
+                    Movement: <   > Arrow Keys <br>
+                    Shoot: Spacebar <br>
+                    <h5> Don't get hit or let the box's land</h5>
+                </div>
+                <!-- <div id="highscores">
+                    <table id="scoretable">
+                        <tr><th class="colheader" colspan="2">High Scores</th></tr>
+                        <tr><td class="col1"> 1.</td><td class="col2" id="score0">0</td></tr>
+                        <tr><td class="col1"> 2.</td><td class="col2" id="score1">0</td></tr>
+                        <tr><td class="col1"> 3.</td><td class="col2" id="score2">0</td></tr>
+                        <tr><td class="col1"> 4.</td><td class="col2" id="score3">0</td></tr>
+                        <tr><td class="col1"> 5.</td><td class="col2" id="score4">0</td></tr>
+                        <tr><td class="col1"> 6.</td><td class="col2" id="score5">0</td></tr>
+                        <tr><td class="col1"> 7.</td><td class="col2" id="score6">0</td></tr>
+                        <tr><td class="col1"> 8.</td><td class="col2" id="score7">0</td></tr>
+                        <tr><td class="col1"> 9.</td><td class="col2" id="score8">0</td></tr>
+                        <tr><td class="col1"> 10.</td><td class="col2" id="score9">0</td></tr>    
+                    </table>
+                </div> -->
+                    <div id="menu"><button id="start_button" onclick="game.start(); canvas.focus()">Start New Game</button></div>
+                    <canvas id="game-layer" width="300" height="180"></canvas>
+                    <script src="app.js"></script>
+                </div>
+            <div class="widebar" id="lives">&nbsp;</div>
+        </div>
+    </div>
     
 </body>
-    <script src="app.js"></script>
+
 </html>

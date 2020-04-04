@@ -134,12 +134,12 @@ function Enemy(position, speed, direction, rank) {
     this.dropTarget = 0;
     this.dropAmount = 1;
     this.timer = 0;
-    this.firePercent = 10;
-    this.fireWait = Math.random() * 5;
+    this.firePercent = 4;
+    this.fireWait = Math.random() * 3;
 }
 Enemy.prototype = Object.create(Entity.prototype);
 
-Enemy.prototype.update = function (dt) {
+Enemy.prototype.update = function (dt) { 
 
     //EDGE COLLISION
     var enemiesLeft = game.enemiesRect().left(),
@@ -261,6 +261,49 @@ function Projectile(position, speed, direction, type) {
     this.type = type;
 }
 Projectile.prototype = Object.create(Entity.prototype);
+
+
+// // Explosion Object
+// ////////////////////
+
+// function Explosion(position, speed, direction, rank, duration) {
+//     Entity.call (this, position, speed, direction);
+
+//     this.width = 13;
+//     this.height = 10; 
+
+//     this.rank = rank; 
+//     this.duration = duration;
+// }
+
+// Explosion.prototype = Object.create(Entity.prototype);
+
+// Explosion.prototype.update = function (dt) {
+//     Entity.prototype.update.call(this, dt);
+
+//     if (this.time > this.duration) {
+//         this.hp = 0;
+//     }
+// };
+
+// // Player Explosion 
+// ///////////////////
+
+// function PlayerExplosion(position, duration) {
+//     Entity.call(this, position, 0, new Vector2d(0, 0));
+
+//     this.width = 20;
+//     this.height = 10;
+//     this.duration = duration;
+// }
+// PlayerExplosion.prototype = Object.create(Entity.prototype);
+
+// PlayerExplosion.prototype.update = function (dt) {
+//     Entity.prototype.update.call(this, dt);
+//     if (this.time > this.duration) {
+//         this.hp = 0;
+//     }
+// }
 
 // Renderer Object
 // Enemy rank will be shown by changing colors.
@@ -546,9 +589,9 @@ var game = (function () {
                 }
             }
 
-            _enemySpeed += 5;
-            _enemyFirePercent += 5;
-            _enemyDropAmount += 1;
+            _enemySpeed += 8;
+            _enemyFirePercent += 8;
+            _enemyDropAmount += 3;
         }
 
         //Check for Game Over 
