@@ -36,11 +36,11 @@ Collision detection was difficult to understand and i will need to go back and i
 I will need to come back and finalize everything to fully get the game up and running as a saw it in my head. 
 
 ## Unsolved Problems
-> Add the win state to show High Score
-> Working Scoreboard
-> Animated Sprites
-> Exploding targets
-> Audio 
+- Add the win state to show High Score
+- Working Scoreboard
+- Animated Sprites
+- Exploding targets
+- Audio 
 
 ## Additional information: 
 ## App Demo 
